@@ -50,63 +50,28 @@
         </item>
         <item>
             <key> <string>_body</string> </key>
-            <value> <string>"""\n
-  Finalize Upgrade is the final step of upgrader. Here should contains\n
-  the scripts that should be executed after the business template installation.\n
-"""\n
-# Setup skins\n
-context.ERP5Site_setupUpgraderSkinSelection()\n
+            <value> <string>portal = context.getPortalObject()\n
+constraint_type_per_type, _ = context.Base_getConstraintTypeListPerPortalType()\n
+constraint_type = filter_dict.get("constraint_type")\n
 \n
-clear_cache_kw = dict(activity=\'SQLQueue\', \n
-                      priority=3, \n
-                      tag="tag_upgrader_clear_cache")\n
-\n
-portal_alarms = context.getPortalObject().portal_alarms\n
-activate = context.portal_activities.activate\n
-# Group Messages into the same active process.\n
-active_process = portal_alarms.upgrader_controller.getLastActiveProcess()\n
-if active_process is None:\n
-  active_process = context.newActiveProcess()\n
-\n
-active_process = active_process.getPath()\n
-\n
-message_list = []\n
-bt5_upgrader_sense = portal_alarms.bt5_upgrader.sense()\n
-if bt5_upgrader_sense:\n
-  activate(active_process=active_process,\n
-           activity=\'SQLQueue\',\n
-           priority=2).Alarm_saveActiveResult(\n
-              summary="ERROR: Finalize Upgrader not started",\n
-              severity=0,\n
-              detail=\'BT5 Upgrader Sense: %s\' % (bt5_upgrader_sense))\n
-\n
-for script_id in context.ERP5Site_getUpgraderSignature().get(\'finalize_upgrade_script_list\', []):\n
-  message_list.extend(getattr(context, script_id)(upgrade=1))\n
-\n
-activate(active_process=active_process,\n
-           activity=\'SQLQueue\',\n
-           priority=2).Alarm_saveActiveResult(summary="Finalize Upgrade",\n
-                       severity=0,\n
-                       detail=\'\\n\'.join(message_list))\n
-\n
-clear_cache_kw[\'after_method_id\'] = [\'Alarm_saveActiveResult\',\'immediateReindexObject\']\n
-context.portal_caches.activate(**clear_cache_kw).clearAllCache()\n
-\n
-activate(active_process=active_process,\n
-           activity=\'SQLQueue\',\n
-           priority=4,\n
-           after_tag=clear_cache_kw[\'tag\']).ERP5Site_notifyUpgradeIntegrity(active_process=active_process)\n
-\n
-return message_list\n
+for portal_type, constraint_type_list in constraint_type_per_type.iteritems():\n
+  if not constraint_type and constraint_type not in constraint_type_list:\n
+    continue\n
+  method_kw = {\'fixit\': fixit,\n
+               \'filter\': filter_dict,\n
+               \'active_process\': active_process.getRelativeUrl()}\n
+  portal.portal_catalog.searchAndActivate(\'Base_postCheckConsistencyResult\',\n
+    portal_type=portal_type,\n
+    method_kw=method_kw)\n
 </string> </value>
         </item>
         <item>
             <key> <string>_params</string> </key>
-            <value> <string>**kw</string> </value>
+            <value> <string>active_process, fixit=False, filter_dict={}</string> </value>
         </item>
         <item>
             <key> <string>id</string> </key>
-            <value> <string>Alarm_upgradeFinalize</string> </value>
+            <value> <string>Alarm_checkUpgraderConsistency</string> </value>
         </item>
       </dictionary>
     </pickle>
