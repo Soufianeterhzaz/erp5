@@ -100,6 +100,7 @@
                         <string>my_constraint_base_category_list</string>
                         <string>my_constraint_portal_type</string>
                         <string>my_use_acquisition</string>
+                        <string>my_constraint_type</string>
                       </list>
                     </value>
                 </item>

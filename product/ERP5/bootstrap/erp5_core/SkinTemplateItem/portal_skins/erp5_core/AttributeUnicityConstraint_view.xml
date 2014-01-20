@@ -99,6 +99,7 @@
                         <string>my_reference</string>
                         <string>my_filter_parameter</string>
                         <string>my_constraint_property_list</string>
+                        <string>my_constraint_type</string>
                       </list>
                     </value>
                 </item>

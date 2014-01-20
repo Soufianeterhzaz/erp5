@@ -101,6 +101,7 @@
                         <string>my_membership_portal_type_list</string>
                         <string>my_workflow_state_list</string>
                         <string>my_workflow_variable</string>
+                        <string>my_constraint_type</string>
                       </list>
                     </value>
                 </item>

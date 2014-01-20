@@ -99,6 +99,7 @@
                         <string>my_reference</string>
                         <string>my_constraint_attribute_name</string>
                         <string>my_constraint_attribute_value</string>
+                        <string>my_constraint_type</string>
                       </list>
                     </value>
                 </item>

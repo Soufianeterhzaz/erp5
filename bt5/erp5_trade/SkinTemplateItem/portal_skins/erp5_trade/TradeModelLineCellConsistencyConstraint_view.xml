@@ -98,6 +98,7 @@
                         <string>my_id</string>
                         <string>my_reference</string>
                         <string>my_base_id</string>
+                        <string>my_constraint_type</string>
                       </list>
                     </value>
                 </item>
