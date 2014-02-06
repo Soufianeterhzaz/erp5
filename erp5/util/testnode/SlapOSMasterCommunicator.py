@@ -34,7 +34,6 @@ class SlapOSMasterCommunicator(object):
     self.certificate_path = certificate_path
     self.key_path = key_path
     self.url = url
-    self.connection = self._getConnection(self.certificate_path, self.key_path, self.url)
     # Get master
     master_link = {'href':api_path,'type':"application/vnd.slapos.org.hal+json; class=slapos.org.master"}
     master = self._curl(master_link)
@@ -54,8 +53,20 @@ class SlapOSMasterCommunicator(object):
     
   def _getConnection(self,certificate_path, key_path, url):
     api_scheme, api_netloc, api_path, api_query, api_fragment = urlparse.urlsplit(url)
-    #self.log("HTTPS Connection with: %s, cert=%s, key=%s" %(api_netloc,key_path,certificate_path))
     return httplib.HTTPSConnection(api_netloc, key_file=key_path, cert_file=certificate_path, timeout=TIMEOUT)
+
+  def _request(self, url, headers, method='GET', body=""):
+    """
+    A simple request helper, follows redirects.
+    """
+    connection = self._getConnection(self.certificate_path, self.key_path, self.url)
+    connection.request(method=method, url=url, headers=headers, body=body)
+    response = connection.getresponse()
+    if response.status == 302:
+      # XXX: add support for external domains.
+      api_scheme, api_netloc, api_path, api_query, api_fragment = urlparse.urlsplit(response.getheader('location'))
+      return self._request(url=api_path, headers=headers, method=method, body=body)
+    return response.read()
 
   def _curl(self, link):
     """
@@ -65,19 +76,15 @@ class SlapOSMasterCommunicator(object):
     import socket
     socket.setdefaulttimeout(1.0 * TIMEOUT)
     api_scheme, api_netloc, api_path, api_query, api_fragment = urlparse.urlsplit(link['href'])
-    # First use the existing connection
-    # Then, if failed, retry with a new connection
     max_retry = 10
     retry = 0
     response_content = None
     while True:
       try:
-        self.connection.request(method='GET', url=api_path, headers={'Accept': link['type']}, body="")
-        response = self.connection.getresponse()
-        response_content = response.read()
+        response_content = self._request(url=api_path, headers={'Accept': link['type']})
         return json.loads(response_content)
-      except:
-        self.log("SlapOSMasterCommunicator: Connection failed...")
+      except Exception as e:
+        self.log("SlapOSMasterCommunicator: Connection failed: %s" % e)
         retry += 1
         if retry > max_retry:
           self.log("SlapOSMasterCommunicator: All connection attempts failed after %d try..." % max_retry)
@@ -85,8 +92,7 @@ class SlapOSMasterCommunicator(object):
             self.log("Response was:")
             self.log(response_content)
           raise
-        time.sleep(10)
-        self.connection = self._getConnection(self.certificate_path, self.key_path, self.url)
+        time.sleep(5)
 
   def _update_hosting_subscription_informations(self):
     """
