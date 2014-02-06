@@ -63,32 +63,31 @@ class SlapOSMasterCommunicator(object):
     """
     # Set timeout
     import socket
-    socket.setdefaulttimeout(1.0*TIMEOUT)
-    
+    socket.setdefaulttimeout(1.0 * TIMEOUT)
     api_scheme, api_netloc, api_path, api_query, api_fragment = urlparse.urlsplit(link['href'])
+    # First use the existing connection
+    # Then, if failed, retry with a new connection
     max_retry = 10
-    # Try to use existing conection
-    try:
-      self.connection.request(method='GET', url=api_path, headers={'Accept': link['type']}, body="")
-      response = self.connection.getresponse()
-      return json.loads(response.read())
-    # Create and use new connection
-    except:
-      retry = 0
-      # (re)Try several time to use new connection
-      while retry < max_retry:
-        try:
-          self.connection = self._getConnection(self.certificate_path, self.key_path, self.url)
-          self.connection.request(method='GET', url=api_path, headers={'Accept': link['type']}, body="")
-          response = self.connection.getresponse()
-          return json.loads(response.read())
-        except:
-          self.log("SlapOSMasterCommunicator: Connection failed..")
-          retry += 1
-          time.sleep(10)
-    self.log("SlapOSMasterCommunicator: All connection attempts failed after %d try.." %max_retry)
-    raise ValueError("SlapOSMasterCommunicator: Impossible to use connection")
-        
+    retry = 0
+    response_content = None
+    while True:
+      try:
+        self.connection.request(method='GET', url=api_path, headers={'Accept': link['type']}, body="")
+        response = self.connection.getresponse()
+        response_content = response.read()
+        return json.loads(response_content)
+      except:
+        self.log("SlapOSMasterCommunicator: Connection failed...")
+        retry += 1
+        if retry > max_retry:
+          self.log("SlapOSMasterCommunicator: All connection attempts failed after %d try..." % max_retry)
+          if response_content:
+            self.log("Response was:")
+            self.log(response_content)
+          raise
+        time.sleep(10)
+        self.connection = self._getConnection(self.certificate_path, self.key_path, self.url)
+
   def _update_hosting_subscription_informations(self):
     """
     Add all not already visited hosting_subcription
