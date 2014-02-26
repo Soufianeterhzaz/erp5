@@ -55,3 +55,11 @@ def Folder_isERP5SitePresent(self):
   return len(self.objectIds("ERP5 Site")) > 0
 
 Folder.isERP5SitePresent = Folder_isERP5SitePresent
+
+def Folder_MKCOL_handler(self, name, REQUEST=None, RESPONSE=None):
+  """
+  Create a subfolder through WebDAV
+  """
+  self.manage_addFolder(name, title='')
+
+Folder.MKCOL_handler = Folder_MKCOL_handler
